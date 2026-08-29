@@ -36,25 +36,6 @@ jobs:
           cat "$SRC/part_05.ino" >> ci_sketch/ci_sketch.ino
           cat "$SRC/part_06.ino" >> ci_sketch/ci_sketch.ino
 
-      - name: Apply v10 RC2 web fixes
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('ci_sketch/ci_sketch.ino')
-          s = p.read_text()
-          marker = '''  page.replace(\n    "%PHOTOS%",'''
-          insert = '''  page.replace("%INFONAME%", htmlEscape(settings.cameraName));\n  page.replace("%FWVERSION%", String(FIRMWARE_VERSION));\n  page.replace("%FWBUILD%", String(FIRMWARE_BUILD));\n  page.replace("%PROTOVER%", String(LPR_PROTOCOL_VERSION));\n  page.replace("%CAMERAID%", htmlEscape(cameraUniqueId()));\n  page.replace("%INFOIP%", WiFi.localIP().toString());\n\n'''
-          if marker not in s:
-              raise SystemExit('Device info insertion point not found')
-          s = s.replace(marker, insert + marker, 1)
-          old = '''  server.send(ok ? 200 : 500, "text/plain",\n              ok ? "Aggiornamento completato. Riavvio..."\n                 : "Aggiornamento FALLITO");'''
-          new = '''  String otaResult;\n  if (ok) {\n    otaResult = "Aggiornamento completato. Riavvio...";\n  } else {\n    otaResult = "Aggiornamento FALLITO - errore ";\n    otaResult += String(Update.getError());\n    otaResult += ": ";\n    otaResult += Update.errorString();\n    Serial.println(otaResult);\n    systemLog("ERROR", otaResult);\n  }\n\n  server.send(ok ? 200 : 500, "text/plain", otaResult);'''
-          if old not in s:
-              raise SystemExit('OTA completion block not found')
-          s = s.replace(old, new, 1)
-          p.write_text(s)
-          PY
-
       - name: Compile AI Thinker ESP32-CAM
         run: |
           arduino-cli compile \
