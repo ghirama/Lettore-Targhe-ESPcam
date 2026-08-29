@@ -1,0 +1,48 @@
+name: Build ESP32-CAM firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firmware/**'
+      - '.github/workflows/build-esp32cam.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config init
+          arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core install esp32:esp32@3.3.8 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+
+      - name: Compile AI Thinker ESP32-CAM
+        run: |
+          mkdir -p build
+          arduino-cli compile \
+            --fqbn 'esp32:esp32:esp32cam:PartitionScheme=min_spiffs' \
+            --output-dir build \
+            firmware/esp32_cam_lpr_v10_ha_device_rc2
+
+      - name: Prepare OTA binary
+        run: |
+          BIN=$(find build -maxdepth 1 -type f -name '*.ino.bin' | head -n 1)
+          test -n "$BIN"
+          cp "$BIN" build/Lettore-Targhe-ESPcam-v10.0.0-rc2-AI-Thinker.bin
+          ls -lh build
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lettore-Targhe-ESPcam-v10.0.0-rc2-AI-Thinker
+          path: build/Lettore-Targhe-ESPcam-v10.0.0-rc2-AI-Thinker.bin
+          if-no-files-found: error
