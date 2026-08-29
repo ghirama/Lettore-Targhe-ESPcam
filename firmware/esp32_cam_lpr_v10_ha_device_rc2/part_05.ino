@@ -107,6 +107,13 @@ function reboot(){
     )
   );
 
+  page.replace("%INFONAME%", htmlEscape(settings.cameraName));
+  page.replace("%FWVERSION%", String(FIRMWARE_VERSION));
+  page.replace("%FWBUILD%", String(FIRMWARE_BUILD));
+  page.replace("%PROTOVER%", String(LPR_PROTOCOL_VERSION));
+  page.replace("%CAMERAID%", htmlEscape(cameraUniqueId()));
+  page.replace("%INFOIP%", WiFi.localIP().toString());
+
   page.replace(
     "%PHOTOS%",
     String(settings.photoCount)
@@ -327,9 +334,20 @@ void handleOTAComplete() {
   bool ok = !Update.hasError();
 
   server.sendHeader("Connection", "close");
-  server.send(ok ? 200 : 500, "text/plain",
-              ok ? "Aggiornamento completato. Riavvio..."
-                 : "Aggiornamento FALLITO");
+
+  String otaResult;
+  if (ok) {
+    otaResult = "Aggiornamento completato. Riavvio...";
+  } else {
+    otaResult = "Aggiornamento FALLITO - errore ";
+    otaResult += String(Update.getError());
+    otaResult += ": ";
+    otaResult += Update.errorString();
+    Serial.println(otaResult);
+    systemLog("ERROR", otaResult);
+  }
+
+  server.send(ok ? 200 : 500, "text/plain", otaResult);
 
   lprBusy = false;
 
