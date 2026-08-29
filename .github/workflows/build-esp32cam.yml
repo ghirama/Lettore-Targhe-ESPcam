@@ -25,13 +25,23 @@ jobs:
           arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core install esp32:esp32@3.3.8 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
 
+      - name: Assemble sketch
+        run: |
+          SRC='firmware/esp32_cam_lpr_v10_ha_device_rc2'
+          mkdir -p ci_sketch build
+          cat "$SRC/esp32_cam_lpr_v10_ha_device_rc2.ino" > ci_sketch/ci_sketch.ino
+          tail -n +2 "$SRC/part_02.ino" >> ci_sketch/ci_sketch.ino
+          cat "$SRC/part_03.ino" >> ci_sketch/ci_sketch.ino
+          cat "$SRC/part_04.ino" >> ci_sketch/ci_sketch.ino
+          cat "$SRC/part_05.ino" >> ci_sketch/ci_sketch.ino
+          cat "$SRC/part_06.ino" >> ci_sketch/ci_sketch.ino
+
       - name: Compile AI Thinker ESP32-CAM
         run: |
-          mkdir -p build
           arduino-cli compile \
             --fqbn 'esp32:esp32:esp32cam:PartitionScheme=min_spiffs' \
             --output-dir build \
-            firmware/esp32_cam_lpr_v10_ha_device_rc2
+            ci_sketch
 
       - name: Prepare OTA binary
         run: |
